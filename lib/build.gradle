@@ -1,0 +1,7 @@
+apply plugin: 'kotlin'
+
+dependencies {
+    def kotlin_version = rootProject.ext.kotlinVersion
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+}

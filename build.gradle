@@ -1,0 +1,22 @@
+buildscript {
+    apply from: 'kotlin.gradle'
+
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+        
+    }
+    ext {
+        applicationId = 'stan.remote.server'
+        versionCode = 1907181822
+        versionName = "0.00.01"
+    }
+}
