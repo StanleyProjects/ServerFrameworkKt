@@ -1,6 +1,8 @@
 # ServerFrameworkKt
 Framework for create `http`/`https` server with [Kotlin](https://kotlinlang.org/)
 
+[![Download](https://api.bintray.com/packages/stnlprjcts/remote/server.framework.kt/images/download.svg)](https://bintray.com/stnlprjcts/remote/server.framework.kt/_latestVersion)
+
 #### Run `http` server on `8888` port
 
 ```kotlin
