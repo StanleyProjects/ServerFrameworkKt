@@ -4,9 +4,9 @@ apply plugin: 'application'
 mainClassName = "stan.remote.AppKt"
 
 dependencies {
-    implementation project(':lib')
-//    def server_framework_kt_version = "0.00.01"
-//    implementation "stnlprjcts.remote:server.framework.kt:$server_framework_kt_version"
+//    implementation project(':lib')
+    def server_framework_kt_version = "0.00.02"
+    implementation "stnlprjcts.remote:server.framework.kt:$server_framework_kt_version"
 //    implementation "stnlprjcts.remote:server.framework.kt:+"
     
     def kotlin_version = rootProject.ext.kotlinVersion

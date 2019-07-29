@@ -20,8 +20,7 @@ fun processRequest(
 }
 
 private fun catchRequest(socket: Socket): Request {
-    val inputStream = socket.getInputStream()
-    val bufferedReader = BufferedReader(InputStreamReader(inputStream))
+    val bufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
     val firstHeader = bufferedReader.readLine()
     if(firstHeader.isNullOrEmpty()) throw EmptyRequestException()
     val split = firstHeader.split(" ")
@@ -37,10 +36,6 @@ private fun catchRequest(socket: Socket): Request {
     while(true) {
         val header = bufferedReader.readLine()
         if(header.isNullOrEmpty()) break
-        when(header.toLowerCase().trim()) {
-            CONTENT_LENGTH_HEADER_NAME -> {}
-            CONTENT_TYPE_HEADER_NAME -> {}
-        }
         val headerSplit = header.split(": ")
         if(headerSplit.size != 2) continue
         val key = headerSplit[0]
@@ -65,7 +60,9 @@ private fun catchRequest(socket: Socket): Request {
         val contentType = Content.Type.values().find {
             it.contentTypeValue.toLowerCase() == contentTypeValue.toLowerCase()
         } ?: throw UnknownContentTypeException()
-        val body = ByteArray(contentLength).also { inputStream.read(it) }
+        val body = ByteArray(contentLength) {
+            bufferedReader.read().toByte()
+        }
         return when(requestType) {
             Request.Type.POST -> PostRequest(
                 query = query,

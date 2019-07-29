@@ -12,17 +12,35 @@ fun main() {
 		"\thost address - "+address.hostAddress
 	)
 	startServer(
-		keyStoreInputStream = Any::class.java.getResourceAsStream("/keystore.jks"),
-		storePassword = "storepass",
-		keyPassword = "keypass",
-		portNumber = 8888
-	) { request ->
-		println(request)
-		if(request.query == "/q") {
+//		keyStoreInputStream = Any::class.java.getResourceAsStream("/keystore.jks"),
+//		storePassword = "storepass",
+//		keyPassword = "keypass",
+		portNumber = 8888,
+		mapper = ::onRequest
+	)
+}
+
+private fun onRequest(request: Request): Response {
+	when {
+		request.query == "/quit" -> {
 			stopServer(8888)
-			responseText(200, "bye")
-		} else {
-			responseText(400, "unknown command")
+			return responseText(200, "bye")
+		}
+		request.query.startsWith("/test") -> when {
+			request.query == "/test/get" -> when(request) {
+				is GetRequest -> {
+					return responseText(200, "success")
+				}
+			}
+			request.query.startsWith("/test/post") -> when(request) {
+				is PostRequest -> when {
+					request.query == "/test/post/text" -> when {
+						request.content.type == Content.Type.TEXT ->
+						return responseText(200, "echo: " + String(request.body))
+					}
+				}
+			}
 		}
 	}
+	return responseText(400, "unknown command")
 }
