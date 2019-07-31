@@ -16,7 +16,12 @@ fun main() {
 //		storePassword = "storepass",
 //		keyPassword = "keypass",
 		portNumber = 8888,
-		mapper = ::onRequest
+		mapper = { request ->
+			println("request: $request")
+			val response = onRequest(request)
+			println("response: $response")
+			response
+		}
 	)
 }
 
@@ -35,7 +40,7 @@ private fun onRequest(request: Request): Response {
 			request.query.startsWith("/test/post") -> when(request) {
 				is PostRequest -> when {
 					request.query == "/test/post/text" -> when {
-						request.content.type == Content.Type.TEXT ->
+						request.content.type === ContentType.TEXT ->
 						return responseText(200, "echo: " + String(request.body))
 					}
 				}

@@ -5,21 +5,25 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.Socket
 
-fun processRequest(
+internal fun processRequest(
     socket: Socket,
+    customContentTypes: Map<String, ContentType.Custom>,
     mapper: (Request) -> Response,
     errorHook: (Throwable) -> Response,
     codeDescriptionHook: (Int) -> String
 ) {
     val response = try {
-        mapper(catchRequest(socket))
+        mapper(catchRequest(socket, customContentTypes))
     } catch(throwable: Throwable) {
         errorHook(throwable)
     }
     send(socket, response, codeDescriptionHook)
 }
 
-private fun catchRequest(socket: Socket): Request {
+private fun catchRequest(
+    socket: Socket,
+    customContentTypes: Map<String, ContentType.Custom>
+): Request {
     val bufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
     val firstHeader = bufferedReader.readLine()
     if(firstHeader.isNullOrEmpty()) throw EmptyRequestException()
@@ -55,14 +59,19 @@ private fun catchRequest(socket: Socket): Request {
         val contentLength = contentLengthValue.toIntOrNull() ?: throw UnknownContentLengthException()
         val contentTypeHeader = headersList.find { (key, _) ->
             key.toLowerCase().trim() == CONTENT_TYPE_HEADER_NAME
-        } ?: throw UnknownContentTypeException()
-        val contentTypeValue = contentTypeHeader.second
-        val contentType = Content.Type.values().find {
-            it.contentTypeValue.toLowerCase() == contentTypeValue.toLowerCase()
-        } ?: throw UnknownContentTypeException()
+        }
+        val contentTypeValue = contentTypeHeader?.second
+        val contentType = when(contentTypeValue?.toLowerCase()) {
+            ContentType.JSON.contentTypeValue.toLowerCase() -> ContentType.JSON
+            ContentType.TEXT.contentTypeValue.toLowerCase() -> ContentType.TEXT
+            null, "" -> ContentType.NONE
+            else -> {
+                customContentTypes[contentTypeValue] ?: ContentType.Unknown(contentTypeValue)
+            }
+        }
         val body = ByteArray(contentLength) {
             bufferedReader.read().toByte()
-        }
+        }//todo post binary!
         return when(requestType) {
             Request.Type.POST -> PostRequest(
                 query = query,
@@ -87,7 +96,15 @@ private fun send(
     var data = "HTTP/1.1 "+response.code+" " + codeDescriptionHook(response.code) + "\r\n"
     when(response) {
         is ResponseWithBody -> {
-            data += CONTENT_TYPE_HEADER_NAME + ": " + response.content.type.contentTypeValue + "\r\n"
+            val type = response.content.type
+            data += "$CONTENT_TYPE_HEADER_NAME: " + when(type) {
+                is ContentType.JSON -> type.contentTypeValue
+                is ContentType.TEXT -> type.contentTypeValue
+                is ContentType.Unknown -> type.contentTypeValue
+                is ContentType.Custom -> type.contentTypeValue
+                ContentType.NONE -> "none"
+            } + "\r\n"
+//            data += CONTENT_TYPE_HEADER_NAME + ": " + response.content.type.contentTypeValue + "\r\n"
             data += CONTENT_LENGTH_HEADER_NAME + ": " + response.content.length + "\r\n"
         }
     }

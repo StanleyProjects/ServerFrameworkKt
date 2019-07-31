@@ -1,5 +1,6 @@
 package stan.remote.server
 
+import stan.remote.ContentType
 import stan.remote.Request
 import stan.remote.Response
 import stan.remote.responseText
@@ -16,8 +17,8 @@ import javax.net.ssl.TrustManagerFactory
 
 private val servers = mutableMapOf<Int, Server>()
 
-private val DEFAULT_ERROR_HOOK: (Throwable) -> Response = { throwable ->
-    responseText(500, body = "error: " + throwable.message)
+private val DEFAULT_ERROR_HOOK: (Throwable) -> Response = {
+    responseText(500, "error: ${it.javaClass.name} ${it.message}")
 }
 private val DEFAULT_CODE_DESCRIPTION_HOOK: (Int) -> String = { code ->
     when(code) {
@@ -33,28 +34,55 @@ private val DEFAULT_CODE_DESCRIPTION_HOOK: (Int) -> String = { code ->
 
 fun startServer(
     portNumber: Int,
+    customContentTypes: Map<String, ContentType.Custom> = emptyMap(),
     errorHook: (Throwable) -> Response = DEFAULT_ERROR_HOOK,
     codeDescriptionHook: (Int) -> String = DEFAULT_CODE_DESCRIPTION_HOOK,
     mapper: (Request) -> Response
-) = startServer(ServerSocket(portNumber), errorHook, codeDescriptionHook, mapper)
+) = startServer(
+    ServerSocket(portNumber),
+    customContentTypes,
+    errorHook,
+    codeDescriptionHook,
+    mapper
+)
+
+const val KEY_STORE_TYPE_JKS = "JKS"
+const val KEY_STORE_TYPE_PKCS12 = "PKCS12"
+const val PROTOCOL_NAME_TLS = "TLS"
+private val DEFAULT_ALGORITHM_NAME by lazy {
+    KeyManagerFactory.getDefaultAlgorithm()
+}
 
 fun startServer(
     portNumber: Int,
     keyStoreInputStream: InputStream,
     storePassword: String,
-    keyPassword: String,
+    keyPassword: String = storePassword,
+    keyStoreType: String = KEY_STORE_TYPE_JKS,
+    algorithmName: String = DEFAULT_ALGORITHM_NAME,
+    protocolName: String = PROTOCOL_NAME_TLS,
+    customContentTypes: Map<String, ContentType.Custom> = emptyMap(),
     errorHook: (Throwable) -> Response = DEFAULT_ERROR_HOOK,
     codeDescriptionHook: (Int) -> String = DEFAULT_CODE_DESCRIPTION_HOOK,
     mapper: (Request) -> Response
 ) {
     val serverSocket = try {
-        serverSocket(portNumber, keyStoreInputStream, storePassword, keyPassword)
+        serverSocket(
+            portNumber,
+            keyStoreInputStream,
+            storePassword,
+            keyPassword,
+            keyStoreType,
+            algorithmName,
+            protocolName
+        )
     } catch(throwable: Throwable) {
         //todo
         throw throwable
     }
     startServer(
         serverSocket,
+        customContentTypes,
         errorHook,
         codeDescriptionHook,
         mapper
@@ -63,6 +91,7 @@ fun startServer(
 
 private fun startServer(
     serverSocket: ServerSocket,
+    customContentTypes: Map<String, ContentType.Custom>,
     errorHook: (Throwable) -> Response,
     codeDescriptionHook: (Int) -> String,
     mapper: (Request) -> Response
@@ -72,7 +101,11 @@ private fun startServer(
         "Server on port number: $portNumber already started"
     )
     val server = Server(
-        serverSocket, mapper, errorHook, codeDescriptionHook
+        serverSocket,
+        customContentTypes,
+        mapper,
+        errorHook,
+        codeDescriptionHook
     )
     server.start()
     println("Server on port number: $portNumber started")
@@ -85,14 +118,26 @@ fun stopServer(portNumber: Int) {
     servers.remove(portNumber)
 }
 
-private val DEFAULT_REJECTED_EXECUTION_HANDLER = ThreadPoolExecutor.AbortPolicy()
+private const val DEFAULT_CORE_POOL_SIZE = 0
+private val DEFAULT_MAXIMUM_POOL_SIZE by lazy {
+    Runtime.getRuntime().availableProcessors()
+}
+private const val DEFAULT_KEEP_ALIVE_TIME = 60_000L
+private val DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS
+private val DEFAULT_BLOCKING_QUEUE = LinkedBlockingQueue<Runnable>()
+private val DEFAULT_THREAD_FACTORY by lazy {
+    Executors.defaultThreadFactory()
+}
+private val DEFAULT_REJECTED_EXECUTION_HANDLER by lazy {
+    ThreadPoolExecutor.AbortPolicy()
+}
 private fun executorService(
-    corePoolSize: Int = 0,
-    maximumPoolSize: Int = 8,
-    keepAliveTime: Long = 60_000,
-    timeUnit: TimeUnit = TimeUnit.MILLISECONDS,
-    blockingQueue: BlockingQueue<Runnable> = SynchronousQueue(),
-    threadFactory: ThreadFactory = Executors.defaultThreadFactory(),
+    corePoolSize: Int = DEFAULT_CORE_POOL_SIZE,
+    maximumPoolSize: Int = DEFAULT_MAXIMUM_POOL_SIZE,
+    keepAliveTime: Long = DEFAULT_KEEP_ALIVE_TIME,
+    timeUnit: TimeUnit = DEFAULT_TIME_UNIT,
+    blockingQueue: BlockingQueue<Runnable> = DEFAULT_BLOCKING_QUEUE,
+    threadFactory: ThreadFactory = DEFAULT_THREAD_FACTORY,
     rejectedExecutionHandler: RejectedExecutionHandler = DEFAULT_REJECTED_EXECUTION_HANDLER
 ): ExecutorService = ThreadPoolExecutor(
     corePoolSize,
@@ -108,35 +153,45 @@ private fun serverSocket(
     portNumber: Int,
     keyStoreInputStream: InputStream,
     storePassword: String,
-    keyPassword: String
+    keyPassword: String,
+    keyStoreType: String,
+    algorithmName: String,
+    protocolName: String
 ): ServerSocket {
     val context = getSSLContext(
         keyStoreInputStream,
         storePassword.toCharArray(),
-        keyPassword.toCharArray()
+        keyPassword.toCharArray(),
+        keyStoreType,
+        algorithmName,
+        protocolName
     )
     val result = context.serverSocketFactory.createServerSocket(portNumber, 0)
     return result
 }
+
 private fun getSSLContext(
     keyStoreInputStream: InputStream,
     storePassword: CharArray,
-    keyPassword: CharArray
+    keyPassword: CharArray,
+    keyStoreType: String,
+    algorithmName: String,
+    protocolName: String
 ): SSLContext {
-    val keyStore = KeyStore.getInstance("JKS")
-    val algorithm = KeyManagerFactory.getDefaultAlgorithm()
+    val keyStore = KeyStore.getInstance(keyStoreType)
     keyStore.load(keyStoreInputStream, storePassword)
-    val keyManagerFactory = KeyManagerFactory.getInstance(algorithm)
+    val keyManagerFactory = KeyManagerFactory.getInstance(algorithmName)
     keyManagerFactory.init(keyStore, keyPassword)
-    val trustManagerFactory = TrustManagerFactory.getInstance(algorithm)
+    val trustManagerFactory = TrustManagerFactory.getInstance(algorithmName)
     trustManagerFactory.init(keyStore)
-    val result = SSLContext.getInstance("TLS")
+    val result = SSLContext.getInstance(protocolName)
     result.init(keyManagerFactory.keyManagers, trustManagerFactory.trustManagers, null)
     return result
 }
 
 private class Server(
     private val serverSocket: ServerSocket,
+    private val customContentTypes: Map<String, ContentType.Custom>,
     private val mapper: (Request) -> Response,
     private val errorHook: (Throwable) -> Response,
     private val codeDescriptionHook: (Int) -> String
@@ -163,7 +218,13 @@ private class Server(
                     processCount.incrementAndGet()
                     try {
                         socket.use {
-                            processRequest(it, mapper, errorHook, codeDescriptionHook)
+                            processRequest(
+                                it,
+                                customContentTypes,
+                                mapper,
+                                errorHook,
+                                codeDescriptionHook
+                            )
                         }
                     } catch(throwable: Throwable) {
                         //todo

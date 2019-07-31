@@ -9,14 +9,32 @@ sealed class Response(
 class ResponseJust(
     code: Int,
     headers: Map<String, String> = emptyMap()
-): Response(code, headers)
+): Response(code, headers) {
+    override fun toString(): String {
+        return "{" +
+            "code=$code," +
+            "headers=$headers" +
+            "}"
+    }
+}
 class ResponseWithBody(
     code: Int,
     headers: Map<String, String> = emptyMap(),
     val body: ByteArray,
-    contentType: Content.Type
+    contentType: ContentType
 ): Response(code, headers) {
     val content = Content(contentType, body.size)
+
+    override fun toString(): String {
+        return "{" +
+            "code=$code," +
+            "headers=$headers" +
+            "content=$content" +
+            if(content.type === ContentType.TEXT) {
+                "body=\"" + String(body) +"\""
+            } else "" +
+            "}"
+    }
 }
 fun responseText(
     code: Int,
@@ -26,7 +44,7 @@ fun responseText(
     code,
     headers,
     body.toByteArray(),
-    contentType = Content.Type.TEXT
+    contentType = ContentType.TEXT
 )
 
 sealed class Request(
@@ -54,7 +72,7 @@ class PostRequest(
     query: String,
     headers: Map<String, String>,
     val body: ByteArray,
-    contentType: Content.Type
+    contentType: ContentType
 ): Request(Type.POST, query, headers) {
     val content = Content(contentType, body.size)
 
@@ -71,15 +89,41 @@ class PostRequest(
 const val CONTENT_LENGTH_HEADER_NAME = "content-length"
 const val CONTENT_TYPE_HEADER_NAME = "content-type"
 
-data class Content(
-    val type: Type,
-    val length: Int
-) {
-    enum class Type(val contentTypeValue: String) {
-        JSON("application/json"),
-        TEXT("text/plain")
+sealed class ContentType {
+    object NONE: ContentType() {
+        override fun toString(): String {
+            return "{$CONTENT_TYPE_HEADER_NAME=none}"
+        }
+    }
+    data class Unknown(val contentTypeValue: String): ContentType() {
+        override fun toString(): String {
+            return "{$CONTENT_TYPE_HEADER_NAME=$contentTypeValue}"
+        }
+    }
+    data class Custom(val contentTypeValue: String): ContentType() {
+        override fun toString(): String {
+            return "{$CONTENT_TYPE_HEADER_NAME=$contentTypeValue}"
+        }
+    }
+    object JSON: ContentType() {
+        val contentTypeValue = "application/json"
+
+        override fun toString(): String {
+            return "{$CONTENT_TYPE_HEADER_NAME=$contentTypeValue}"
+        }
+    }
+    object TEXT: ContentType() {
+        val contentTypeValue = "text/plain"
+
+        override fun toString(): String {
+            return "{$CONTENT_TYPE_HEADER_NAME=$contentTypeValue}"
+        }
     }
 }
+data class Content(
+    val type: ContentType,
+    val length: Int
+)
 
 class EmptyRequestException: Exception()
 class UnknownRequestTypeException: Exception()

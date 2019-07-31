@@ -16,7 +16,7 @@ allprojects {
     }
     ext {
         applicationId = 'stan.remote.server'
-        versionCode = 1907291517
-        versionName = "0.00.02"
+        versionCode = 1907311754
+        versionName = "0.00.03"
     }
 }
