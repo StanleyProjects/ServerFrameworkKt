@@ -1,8 +1,9 @@
 /*
-!/lib
 !/app
-!build.gradle
-!settings.gradle
-!kotlin.gradle
-!README.md
+!/buildSrc
+!/lib
 !.gitignore
+!build.gradle.kts
+!LICENSE
+!README.md
+!settings.gradle.kts
