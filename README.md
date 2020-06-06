@@ -1,4 +1,4 @@
-![version](https://img.shields.io/static/v1?label=version&message=0.0.1-1&labelColor=212121&color=2962ff&style=flat)
+![version](https://img.shields.io/static/v1?label=version&message=0.0.1-2&labelColor=212121&color=2962ff&style=flat)
 
 # ServerFrameworkKt
 Framework for create `http`/`https` server with [Kotlin](https://kotlinlang.org/)
@@ -14,7 +14,7 @@ startServer(8888) { request ->
     stopServer(8888)
     responseText(200, "bye")
   } else {
-  	responseText(400, "unknown command")
+    responseText(400, "unknown command")
   }
 }
 ```
@@ -33,7 +33,7 @@ startServer(
     stopServer(8888)
     responseText(200, "bye")
   } else {
-  	responseText(400, "unknown command")
+    responseText(400, "unknown command")
   }
 }
 ```
