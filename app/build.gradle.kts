@@ -8,9 +8,11 @@ application {
 }
 
 dependencies {
-    implementation(project(":lib"))
+    // implementation(project(":lib"))
 
     implementation(kotlin("stdlib"))
 
-//    implementation(group = "stnlprjcts.remote", name = "server.framework.kt", version = "0.00.03")
+    // val libVersion = "0.00.03"
+    val libVersion = "0.0.1-2-Snapshot"
+    implementation(group = "stnlprjcts.remote", name = "server.framework.kt", version = libVersion)
 }

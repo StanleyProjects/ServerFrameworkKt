@@ -35,7 +35,7 @@ task<JavaExec>("verifyCodeStyle") {
     )
 }
 
-task<DefaultTask>("verifyReadme") {
+task("verifyReadme") {
     doLast {
         val file = File(rootDir, "README.md")
         val text = file.requireFilledText()
@@ -48,7 +48,7 @@ task<DefaultTask>("verifyReadme") {
                 color = "2962ff"
             )
         )
-        val bintrayProject = "stnlprjcts/remote/server.framework.kt"
+        val bintrayProject = "stnlprjcts/remote/" + Common.applicationId
         val downloadLatestBadge = "[" +
             "![Download](https://api.bintray.com/packages/$bintrayProject/images/download.svg)" +
         "](https://bintray.com/$bintrayProject/_latestVersion)"
@@ -56,12 +56,12 @@ task<DefaultTask>("verifyReadme") {
             versionBadge,
             downloadLatestBadge
         ).forEach {
-            if (!lines.contains(it)) error("File by path ${file.absolutePath} must contains \"$it\" line!")
+            check(lines.contains(it)) { "File by path ${file.absolutePath} must contains \"$it\" line!" }
         }
     }
 }
 
-task<DefaultTask>("verifyLicense") {
+task("verifyLicense") {
     doLast {
         val file = File(rootDir, "LICENSE")
         val text = file.requireFilledText()
@@ -69,8 +69,21 @@ task<DefaultTask>("verifyLicense") {
     }
 }
 
+task("verifyAll") {
+    dependsOn(setOf(
+        "CodeStyle",
+        "Readme",
+        "License"
+    ).map { "verify$it" })
+}
+
 task<Delete>("clean") {
     delete = setOf(rootProject.buildDir)
+}
+
+task<Delete>("cleanAll") {
+    dependsOn("clean")
+    delete = setOf(File(rootDir, "buildSrc/build"))
 }
 
 allprojects {
