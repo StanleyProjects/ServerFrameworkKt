@@ -32,23 +32,32 @@ fun main() {
 }
 
 private fun onRequest(request: Request, portNumber: Int): Response {
-    when {
-        request.query == "/quit" -> {
-            stopServer(portNumber)
-            return response(code = Code.SUCCESS_OK, body = "bye")
+    when (request.path) {
+        "/quit" -> when (request.type) {
+            Request.Type.GET -> {
+                stopServer(portNumber)
+                return response(code = Code.SUCCESS_OK, body = "bye")
+            }
         }
-        request.query.startsWith("/test") -> when {
-            request.query == "/test/get" -> when (request.type) {
-                Request.Type.GET -> {
-                    return response(code = Code.SUCCESS_OK, body = "success")
+        "/test/get" -> when (request.type) {
+            Request.Type.GET -> {
+                return response(code = Code.SUCCESS_OK, body = "success")
+            }
+        }
+        "/test/post/echo" -> when (request.type) {
+            Request.Type.POST -> when (request) {
+                is RequestWithBody -> when (request.contentType) {
+                    ContentType.Text -> {
+                        return response(code = Code.SUCCESS_OK, body = "echo: " + String(request.body))
+                    }
                 }
             }
-            request.query.startsWith("/test/post") -> when {
-                request.query == "/test/post/text" &&
-                request.type == Request.Type.POST &&
-                request is RequestWithBody &&
-                request.contentType == ContentType.Text -> {
-                    return response(code = Code.SUCCESS_OK, body = "echo: " + String(request.body))
+        }
+        "/test/post/parameter" -> when (request.type) {
+            Request.Type.POST -> {
+                val foo = request.queryParameters["foo"]
+                if (foo != null) {
+                    return response(code = Code.SUCCESS_OK, body = "foo: $foo")
                 }
             }
         }

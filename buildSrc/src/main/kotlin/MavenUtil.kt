@@ -17,7 +17,7 @@ object MavenUtil {
             "xmlns" to mavenApacheUrlPom,
             "xmlns:xsi" to "http://www.w3.org/2001/XMLSchema-instance"
         ).joinToString(separator = " ") { (key, value) ->
-            key + "=" + "\"" + value + "\""
+            "$key=\"$value\""
         }
         return setOf(
             "modelVersion" to modelVersion,

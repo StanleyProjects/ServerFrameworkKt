@@ -16,8 +16,8 @@ dependencies {
 
 val reportsPath = "${rootProject.buildDir}/reports"
 val analysisPath = "$reportsPath/analysis"
-val analysisStylePath = "$analysisPath/style"
-val analysisStyleHtmlPath = "$analysisStylePath/html/report.html"
+val analysisCodeStylePath = "$analysisPath/codeStyle"
+val analysisCodeStyleHtmlPath = "$analysisCodeStylePath/html/report.html"
 
 task<JavaExec>("verifyCodeStyle") {
     classpath = kotlinLint
@@ -31,7 +31,7 @@ task<JavaExec>("verifyCodeStyle") {
         "lib/build.gradle.kts",
         "app/src/main/kotlin/**/*.kt",
         "app/build.gradle.kts",
-        "--reporter=html,output=$analysisStyleHtmlPath"
+        "--reporter=html,output=$analysisCodeStyleHtmlPath"
     )
 }
 

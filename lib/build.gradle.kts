@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    apply(Plugin.dokka, withVersion = true)
 }
 
 version = Version.Application.name + "-" + Version.Application.code
@@ -24,7 +25,7 @@ setOf(
         dependsOn(compileKotlin)
         archiveBaseName.set(buildName)
         archiveVersion.set(versionName)
-        from(compileKotlin.getDestinationDir())
+        from(compileKotlin.destinationDir)
     }
     task<Jar>("assemble${it}Source") {
         archiveBaseName.set(buildName)
@@ -49,5 +50,18 @@ setOf(
             )
             file.writeText(text)
         }
+    }
+}
+
+val reportsPath = "${buildDir.absolutePath}/reports"
+val documentationPath = "$reportsPath/documentation"
+val documentationHtmlPath = "$documentationPath/html"
+
+task<org.jetbrains.dokka.gradle.DokkaTask>("collectDocumentation") {
+    // todo logging: loading modules... 0.11.0?
+    outputFormat = "html"
+    outputDirectory = documentationHtmlPath
+    configuration {
+        moduleName = "ServerFrameworkKt"
     }
 }

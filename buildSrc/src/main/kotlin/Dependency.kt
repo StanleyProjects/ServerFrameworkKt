@@ -1,4 +1,5 @@
 private object Group {
+    const val jetbrains = "org.jetbrains"
     const val pinterest = "com.pinterest"
 }
 
@@ -19,4 +20,11 @@ data class Dependency(
 data class Plugin(
     val name: String,
     val version: String
-)
+) {
+    companion object {
+        val dokka = Plugin(
+            name = "${Group.jetbrains}.dokka",
+            version = Version.dokka
+        )
+    }
+}

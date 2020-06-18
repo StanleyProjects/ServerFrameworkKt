@@ -42,7 +42,14 @@ fun DependencyHandlerScope.implementationProjects(
 }
 
 fun PluginDependenciesSpec.apply(plugin: Plugin) {
-    id(plugin.name)
+    apply(plugin, withVersion = false)
+}
+fun PluginDependenciesSpec.apply(plugin: Plugin, withVersion: Boolean) {
+    if (withVersion) {
+        id(plugin.name).version(plugin.version)
+    } else {
+        id(plugin.name)
+    }
 }
 
 fun PluginDependenciesSpec.applyAll(

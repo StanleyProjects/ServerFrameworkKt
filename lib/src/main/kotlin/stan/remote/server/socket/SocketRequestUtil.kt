@@ -47,8 +47,26 @@ internal fun getRequest(bufferedReader: BufferedReader): Request {
     require(split.isNotEmpty()) { "Unknown request type! First header split problem." }
     val requestType = requireRequestType(type = split[0])
     require(split.size > 1) { "Unknown request query!" }
-    val query = split[1]
-    require(query.isNotEmpty()) { "Unknown request query!" }
+    val query = split[1].split("?")
+    val path: String
+    val queryParameters: Map<String, String>
+    when (query.size) {
+        0 -> {
+            path = ""
+            queryParameters = emptyMap()
+        }
+        1 -> {
+            path = query[0]
+            queryParameters = emptyMap()
+        }
+        2 -> {
+            path = query[0]
+            val parameters = query[1].split("&").map { it.split("=") }
+            require(parameters.all { it.size == 2 }) { "Unknown request query! Error split quire parameters." }
+            queryParameters = parameters.map { it[0] to it[1] }.toMap()
+        }
+        else -> error("Unknown request query! Error split by \"?\".")
+    }
     val headers = mutableMapOf<String, String>()
     while (true) {
         val header = bufferedReader.readLine()
@@ -73,7 +91,8 @@ internal fun getRequest(bufferedReader: BufferedReader): Request {
         return when (requestType) {
             Request.Type.POST -> request(
                 type = requestType,
-                query = query,
+                path = path,
+                queryParameters = queryParameters,
                 headers = headers,
                 body = body,
                 contentType = contentType
@@ -82,7 +101,12 @@ internal fun getRequest(bufferedReader: BufferedReader): Request {
         }
     }
     return when (requestType) {
-        Request.Type.GET -> request(type = requestType, query = query, headers = headers)
+        Request.Type.GET -> request(
+            type = requestType,
+            path = path,
+            queryParameters = queryParameters,
+            headers = headers
+        )
         else -> error("Request type \"$requestType\" not supported!")
     }
 }
